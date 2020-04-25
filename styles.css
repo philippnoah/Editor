@@ -1,0 +1,73 @@
+* {
+  outline: none;
+  font-family: "Montserrat";
+  font-size: 16px;
+}
+
+html, body {
+  padding: 0px;
+  margin: 0px;
+}
+
+input[type='checkbox'] {
+  margin-right: 10px;
+}
+
+#ta-main {
+  width: 90vw;
+  height: 90vh;
+  resize: none;
+  padding: 20px;
+}
+
+.wrapper {
+  /* display: block; */
+}
+
+.task {
+  display: inline-block;
+  background: rgba(0,0,0,0.1);
+  /* cursor: pointer; */
+  padding: 6px 12px;
+  margin: 5px;
+  border-radius: 5px;
+}
+
+.taskXXXXX:hover {
+  background: rgba(0,0,0,0.3);
+}
+
+.heading-1 {
+  display: inline-block;
+  background: cyan;
+  padding: 8px 12px;
+  margin: 5px;
+  color: rgba(0,0,0,0.5);
+  border-radius: 5px;
+  font-family: "Montserrat"
+}
+
+.hidden-space {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: red;
+  opacity: 0;
+}
+
+.translucent {
+  opacity: 0;
+}
+
+.display-inline-block {
+  display: inline-block;
+}
+
+.display-inline {
+  display: inline;
+}
+
+.display-block {
+  display: block;
+}
