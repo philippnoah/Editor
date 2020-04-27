@@ -5,186 +5,166 @@
 // selectively enable features needed in the rendering
 // process.
 var area = document.createElement("div");
+NodeList.prototype.forEach = Array.prototype.forEach;
 
 function main() {
-  setupUI()
+  setupUI();
 }
-main()
+main();
 
 function setupUI() {
-  area.id = "ta-main"
+  area.id = "ta-main";
+  area.className = "ta-main";
   area.contentEditable = true;
-  area.addEventListener("keydown", e => parseKeyDown(e), false);
   area.addEventListener("keyup", e => parseKeyUp(e), false);
-  document.body.appendChild(area)
+  area.addEventListener("keydown", e => parseKeyDown(e), false);
+  // area.addEventListener("paste", e => parse(e.target), false);
+  document.body.appendChild(area);
 }
 
 function parseKeyUp(e) {
-  // console.log(e.which);
-  if (isLetter(e)) {
-    if (e.which == 84) {
-      parseCmdLetterWithNode('t')
-    } else if (e.which == 72) {
-      parseCmdLetterWithNode('h')
-    }
-  }
-}
-
-function parseCmdLetterWithNode(letter) {
   var pos = getCaret();
-  if (pos.node.textContent[pos.offset - 2] == '#' && pos.node.textContent[pos.offset - 1] == letter) {
-    pos.node.textContent = pos.node.textContent.substring(0, pos.offset - 2) + pos.node.textContent.substring(pos.offset, pos.node.textContent.length)
-    pos.offset -= 2
-    setCaret(pos.node, pos.offset)
-    var node;
-    switch (letter) {
-      case 't':
-        node = createTask()
-        break;
-      case 'h':
-        node = createHeading()
-        break;
-      default:
-        break;
-    }
-    insertNode(node);
+  parse(e.target);
+}
+
+function moveCaret(e) {
+  var pos = getCaret();
+  console.log(pos.offset);
+  switch (e.keyCode) {
+    case 37:
+      return pos.offset == 0 ? moveLeft() : false;
   }
 }
 
-function outermostParentWithClass(node, className) {
-  var nodeWithClass = null
-  while (node.parentNode) {
-    if (node.tagName == "BODY") {
-      break;
-    }
-    if (hasClass(node, className)) {
-      nodeWithClass = node
-    }
-    node = node.parentNode
+function nextParentWithPrevSibling(node) {
+  while (node.id != "ta-main") {
+    if (node.previousSibling) return node;
+    node = node.parentNode;
   }
-  return nodeWithClass;
+  return null;
 }
 
-function nextParentWithClass(node, className) {
-  while (!hasClass(node, className)) {
-    node = node.parentNode
-    if (node.nodeType == 9) {
-      return null
-    }
+function moveLeft() {
+  var pos = getCaret();
+  var rightThres = Array.from(pos.node.parentNode.childNodes).indexOf(pos.node);
+  var newNode = checkParentForTextNode(pos.node, 0);
+  // console.log(pos, newNode);
+  setCaret(newNode, newNode.length);
+  return true;
+}
+
+function checkParentForTextNode(node, rightThres) {
+  if (node == area.parentNode) {
+    return null;
   }
-  return node;
-}
-
-function isFirstChildOfParentWithClass(node, className) {
-  while (node.parentNode) {
-    if (hasClass(node, className)) {
-      return node
-    }
-    node = node.parentNode
+  var res = checkChildrenForTextNode(node, rightThres);
+  if (res) {
+    return res;
+  } else {
+    rightThres = Array.from(node.parentNode.childNodes).indexOf(node);
+    return checkParentForTextNode(node.parentNode, rightThres);
   }
-  return null
 }
 
-function hasClass(node, className) {
-  return (' ' + node.className + ' ').indexOf(' ' + className + ' ') > -1;
-}
-
-function createTask() {
-  var div = document.createElement("div");
-  var id = makeID("task-", 10);
-  div.className = "wrapper"
-  var inp = `<div class="task" id=${id}><input onClick="handleCheckBoxClick(event)" type="checkbox" class="check-box"/></div>`;
-  div.innerHTML = inp;
-  return div
-}
-
-function createHeading() {
-  var div = document.createElement("div");
-  var id = makeID("heading-", 10);
-  div.className = "wrapper"
-  var innerHTML = `<div class="heading-1"></div>`
-  div.innerHTML = innerHTML
-  return div
+function checkChildrenForTextNode(node, rightThres) {
+  var children = node.childNodes;
+  console.dir(node);
+  rightThres = rightThres == -1 ? children.length : rightThres;
+  for (var i = rightThres - 1; i >= 0; i--) {
+    if (children[i].nodeType != 3) {
+      return checkChildrenForTextNode(children[i], -1);
+    }
+    console.log(children[i]);
+    return children[i];
+  }
+  return null;
 }
 
 function parseKeyDown(e) {
   var pos = getCaret();
-  // console.log(wrapper);
-  if (e.which == 13) {
-    var wrapper = outermostParentWithClass(pos.node, "wrapper")
-    if (wrapper) {
-      if (pos.offset == 0) {
-        var newLine = document.createElement("div")
-        newLine.innerHTML = "<br/>"
-        insertBefore(newLine, wrapper)
-        e.preventDefault()
-        e.stopPropagation()
-      } else {
-        var newLine = document.createElement("div")
-        newLine.innerHTML = "<br/>"
-        insertAfter(newLine, wrapper)
-        setCaret(newLine, 0)
-        e.preventDefault()
-        e.stopPropagation()
-      }
-    }
-  }
 
+  // if ([37, 38, 39, 40].includes(e.keyCode)) {
+  //   if (moveCaret(e)) {
+  //     e.stopPropagation();
+  //     e.preventDefault();
+  //   }
+  // }
+
+  var par = nextParentWithClass(pos.node, "wrapper");
   if (e.which == 8) {
-    console.log(isFirstChildOfParentWithClass(pos.node, "wrapper"));
-    var wrapper = nextParentWithClass(pos.node, "wrapper")
-    if (wrapper) {
-      pos.node = pos.node.nodeType == 3 ? pos.node.parentNode : pos.node
-      if (wrapper == pos.node.parentNode && pos.offset == 0) {
-        var innerHTML = pos.node.innerHTML
-        wrapper.remove()
-        if (containsHTML(innerHTML)) {
-          var div = document.createElement("div")
-          div.className = "display-inline"
-          div.innerHTML = innerHTML
-          insertNode(div)
-          setCaret(div, 0)
-        } else {
-          insertTextAtCursor(innerHTML)
-        }
-        e.stopPropagation()
-        e.preventDefault()
+    if (par != null) {
+      if (pos.offset == 0) {
+        // e.preventDefault();
+        // e.stopPropagation();
       }
     }
   }
+  if (e.which == 13 && par) {
+    var newLine = document.createElement("div");
+    newLine.innerHTML = "<br/>";
+    console.log(par);
+    // var wrapper = nextParentThatIsChildOfNodeWithClass(pos.node, "ta-main");
+    insertAfter(newLine, par);
+    setCaret(newLine, 0);
+    e.preventDefault();
+    e.stopPropagation();
+  }
 }
 
-function containsHTML(str) {
-  return /<\/?[a-z][\s\S]*>/i.test(str)
-}
-
-function insertTextAtCursor(text) {
-    var sel, range;
-    if (window.getSelection) {
-        sel = window.getSelection();
-        if (sel.getRangeAt && sel.rangeCount) {
-            range = sel.getRangeAt(0);
-            range.deleteContents();
-            range.insertNode( document.createTextNode(text) );
-            range.collapse(true);
-        }
-    } else if (document.selection && document.selection.createRange) {
-        document.selection.createRange().text = text;
+function nextParentThatIsChildOfNodeWithClass(node, className) {
+  while (node.parentNode) {
+    if (hasClass(node.parentNode, className)) {
+      return node;
     }
+    node = node.parentNode;
+  }
+  return null;
 }
 
-function unwrap(wrapper) {
-	// place childNodes in document fragment
-	var docFrag = document.createDocumentFragment();
-	while (wrapper.firstChild) {
-		var child = wrapper.removeChild(wrapper.firstChild);
-		docFrag.appendChild(child);
-	}
-
-	// replace wrapper with document fragment
-	wrapper.parentNode.replaceChild(docFrag, wrapper);
+function nextParentWithClass(node, className) {
+  while (node.parentNode) {
+    if (hasClass(node, className)) {
+      return node;
+    }
+    node = node.parentNode;
+  }
+  return null;
 }
 
+function parse(node) {
+  var text = (node.nodeValue || "").replace(/\s/g, " ");
+  var pattern = "- ";
+  var indeces = getIndicesOf(pattern, text);
+  indeces.forEach(index => {
+    if (index != 0) return;
+    node.nodeValue = text.replace("- ", "");
+    setCaret(node, index);
+    var task = document.createElement("div");
+    task.className = "wrapper";
+    task.innerHTML = `<div class="task"><div contenteditable="false"><input type="checkbox"/></div><div><br/></div></div>`;
+    insertNodeAtCursor(task);
+    setCaret(task, 1);
+    task.focus();
+  });
+  node.childNodes.forEach(function(child) {
+    parse(child);
+  });
+}
+
+function getIndicesOf(searchStr, str, caseSensitive) {
+  var searchStrLen = searchStr.length;
+  if (searchStrLen == 0) {
+    return [];
+  }
+  var startIndex = 0,
+    index,
+    indices = [];
+  while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+    indices.push(index);
+    startIndex = index + searchStrLen;
+  }
+  return indices;
+}
 
 function setCaret(node, offset) {
   var sel;
@@ -201,56 +181,28 @@ function setCaret(node, offset) {
 }
 
 function getCaret() {
-  var sel,
-    range;
+  var sel, range;
   if (window.getSelection && (sel = window.getSelection()).rangeCount) {
     range = sel.getRangeAt(0);
-    return {node: sel.anchorNode, offset: range.startOffset}
+    return {node: sel.anchorNode, offset: range.startOffset};
   }
 }
 
-function isLetter(e) {
-  var keycode = e.keyCode;
-
-  var valid = (keycode > 47 && keycode < 58) || // number keys
-  keycode == 32 || keycode == 13 || // spacebar & return key(s) (if you want to allow carriage returns)
-  (keycode > 64 && keycode < 91) || // letter keys
-  (keycode > 95 && keycode < 112) || // numpad keys
-  (keycode > 185 && keycode < 193) || // ;=,-./` (in order)
-  (keycode > 218 && keycode < 223); // [\]' (in order)
-
-  return valid;
+function hasClass(node, className) {
+  return (" " + node.className + " ").indexOf(" " + className + " ") > -1;
 }
 
-function insertNode(node) {
-  var sel,
-    range;
+function insertNodeAtCursor(node) {
+  var sel, range;
   if (window.getSelection && (sel = window.getSelection()).rangeCount) {
     range = sel.getRangeAt(0);
     range.collapse(true);
-      range.insertNode(node);
-      range.setStartAfter(node.firstChild || node);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
+    range.insertNode(node);
+    range.setStartAfter(node.firstChild || node);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
-}
-
-function makeID(prefix, length) {
-  var result = "" + prefix;
-  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
-
-function nextParentWithNextSibling(node) {
-  while (node.nextSibling == null && node.nodeType != 9) {
-    node = node.parentNode;
-  }
-  return node
 }
 
 function insertAfter(newNode, referenceNode) {
