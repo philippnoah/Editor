@@ -80,8 +80,37 @@ function checkChildrenForTextNode(node, rightThres) {
   return null;
 }
 
+function offsetUntilNode(parent, endNode, offset) {
+  var children = parent.childNodes;
+  for (var i = 0; i < children.length; i++) {
+    if (children[i] == endNode) break;
+    if (children[i].nodeType == 3) offset += children[i].length;
+    else offsetUntilNode(children[i], endNode, offset);
+  }
+  return offset;
+}
+
 function parseKeyDown(e) {
   var pos = getCaret();
+  var par = nextParentWithClass(pos.node, "wrapper");
+  if (par) {
+    var parOffset = offsetUntilNode(par, pos.node, 0);
+    var offset = parOffset + pos.offset;
+    console.log(offset);
+    if (offset == 0) {
+      if (e.which == 8) {
+        var inner = unwrap(par);
+        // remove par
+        par.remove();
+        // add inner
+        var div = document.createElement("div");
+        div.innerHTML = "-" + inner;
+        insertNodeAtCursor(div);
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+  }
 
   // if ([37, 38, 39, 40].includes(e.keyCode)) {
   //   if (moveCaret(e)) {
@@ -90,7 +119,6 @@ function parseKeyDown(e) {
   //   }
   // }
 
-  var par = nextParentWithClass(pos.node, "wrapper");
   if (e.which == 8) {
     if (par != null) {
       if (pos.offset == 0) {
@@ -108,6 +136,14 @@ function parseKeyDown(e) {
     setCaret(newLine, 0);
     e.preventDefault();
     e.stopPropagation();
+  }
+}
+
+function unwrap(par) {
+  if (hasClass(par, "type-task")) {
+    par.firstChild.firstChild.remove();
+    var inner = par.firstChild.innerHTML;
+    return inner;
   }
 }
 
@@ -140,7 +176,7 @@ function parse(node) {
     node.nodeValue = text.replace("- ", "");
     setCaret(node, index);
     var task = document.createElement("div");
-    task.className = "wrapper";
+    task.className = "wrapper type-task";
     task.innerHTML = `<div class="task"><div contenteditable="false"><input type="checkbox"/></div><div><br/></div></div>`;
     insertNodeAtCursor(task);
     setCaret(task, 1);
